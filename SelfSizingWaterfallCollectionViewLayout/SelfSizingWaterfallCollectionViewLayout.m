@@ -308,11 +308,17 @@
     self.headerAttributes[section] = headerAttributes;
   }
   
+  NSUInteger posIdx = 0;
   for (NSUInteger item = 0; item < itemCount; item++) {
     
     NSIndexPath *indexPath = [NSIndexPath indexPathForItem:item inSection:section];
     CollectionCellType type = [self.delegate collectionView:self.collectionView cellTypeForIndexPath:indexPath];
-    NSUInteger columnIndex = (type == SectionCellType)? 0 : (item % [self numberOfColumnsInSection:section]) + 1; //if we have a section cell, put it in the left most column
+    NSUInteger columnIndex = 0;
+    if (type != SectionCellType) {
+      columnIndex = (posIdx % [self numberOfColumnsInSection:section]) + 1;
+      posIdx++;
+    }
+    //if we have a section cell, put it in the left most column
     CGFloat xOffset = leftInset + ((itemWidth + singleGutterWidth) * columnIndex);
     CGFloat yOffset = reverseTetrisPoint + [self columnHeightsInSection:section][columnIndex].floatValue;
     
