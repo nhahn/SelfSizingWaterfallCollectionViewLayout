@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
 
   s.name         = "SelfSizingWaterfallCollectionViewLayout"
-  s.version      = "0.0.2"
+  s.version      = "0.0.3"
   s.summary      = "https://github.com/nhahn/SelfSizingWaterfallCollectionViewLayout"
 
   s.description  = <<-DESC

@@ -286,15 +286,6 @@
   }
   
   CGSize headerSize = [self headerReferenceSizeInSection:section];
-  if (headerSize.height > 0) {
-    UICollectionViewLayoutAttributes *headerAttributes = [UICollectionViewLayoutAttributes layoutAttributesForSupplementaryViewOfKind:UICollectionElementKindSectionHeader withIndexPath:[NSIndexPath indexPathForItem:0 inSection:section]];
-    headerAttributes.frame = CGRectMake(0, reverseTetrisPoint, headerSize.width, headerSize.height);
-    for (NSUInteger column = 0; column < numberOfColumns; column++) {
-      // This implicitly adds to the reverseTetrisPoint
-      [self appendHeight:headerSize.height toColumn:column inSection:section];
-    }
-    self.headerAttributes[section] = headerAttributes;
-  }
   
   CGFloat leftInset = [self sectionInsetsInSection:section].left;
   CGFloat rightInset = [self sectionInsetsInSection:section].right;
@@ -305,6 +296,17 @@
   CGFloat minimumLineSpacing = [self minimumLineSpacingInSection:section];
   NSInteger itemCount = [self.collectionView numberOfItemsInSection:section];
   CGFloat itemWidth = floorf((cellContentAreaWidth - totalGutterWidth) / numberOfColumns);
+  
+  if (headerSize.height > 0) {
+    UICollectionViewLayoutAttributes *headerAttributes = [UICollectionViewLayoutAttributes layoutAttributesForSupplementaryViewOfKind:UICollectionElementKindSectionHeader withIndexPath:[NSIndexPath indexPathForItem:0 inSection:section]];
+    CGFloat offset = leftInset + itemWidth + singleGutterWidth;
+    headerAttributes.frame = CGRectMake(offset, reverseTetrisPoint, headerSize.width - offset, headerSize.height);
+    for (NSUInteger column = 0; column < numberOfColumns; column++) {
+      // This implicitly adds to the reverseTetrisPoint
+      [self appendHeight:headerSize.height toColumn:column inSection:section];
+    }
+    self.headerAttributes[section] = headerAttributes;
+  }
   
   for (NSUInteger item = 0; item < itemCount; item++) {
     
