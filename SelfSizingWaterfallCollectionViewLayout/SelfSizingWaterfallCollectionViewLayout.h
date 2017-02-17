@@ -8,6 +8,12 @@
 
 #import <UIKit/UIKit.h>
 
+typedef enum {
+  SectionCellType,
+  NoteCellType,
+  AnnotationCellType
+} CollectionCellType;
+
 /**
  SelfSizingWaterfallCollectionViewLayout is a concrete layout object that organizes items into a grid of variable columnns with optional header and footer views for each section. The items in the collection view flow from one row or column to the next, with each item being placed beneath the shortest column in the section (as if you're winning at Tetris upside-down). Collection view items can be the same size or different sizes and should implement `preferredLayoutAttributesFittingAttributes:` to provide final layout information.
  */
@@ -62,7 +68,12 @@
  */
 @protocol SelfSizingWaterfallCollectionViewLayoutDelegate <UICollectionViewDelegate>
 
+@required
+
+- (CollectionCellType) collectionView:(UICollectionView *)collectionView cellTypeForIndexPath: (NSIndexPath *) indexPath;
+
 @optional
+
 
 /**
  Asks the delegate for the margins to apply to content in the specified section.
@@ -110,7 +121,7 @@
 
 /**
  Asks the delegate for the size of the header view in the specified section.
-
+ 
  @param collectionView       The collection view object displaying the waterfall layout.
  @param collectionViewLayout The layout object requesting the information.
  @param section              The section in which the layout information is needed.
