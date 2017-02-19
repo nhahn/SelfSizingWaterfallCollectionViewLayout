@@ -411,6 +411,18 @@
 
 - (UICollectionViewLayoutAttributes *)layoutAttributesForSupplementaryViewOfKind:(NSString *)elementKind atIndexPath:(NSIndexPath *)indexPath
 {
+  
+  CGFloat leftInset = [self sectionInsetsInSection:indexPath.section].left;
+  CGFloat rightInset = [self sectionInsetsInSection:indexPath.section].right;
+  CGFloat cellContentAreaWidth = CGRectGetWidth(self.collectionView.frame) - (leftInset + rightInset);
+  CGFloat numberOfGutters = [self numberOfColumnsInSection:indexPath.section];
+  CGFloat singleGutterWidth = [self minimumInteritemSpacingInSection:indexPath.section];
+  CGFloat totalGutterWidth = singleGutterWidth * numberOfGutters;
+  CGFloat minimumLineSpacing = [self minimumLineSpacingInSection:indexPath.section];
+  NSInteger itemCount = [self.collectionView numberOfItemsInSection:indexPath.section];
+  CGFloat itemWidth = floorf((cellContentAreaWidth - totalGutterWidth) / ([self numberOfColumnsInSection:indexPath.section] + 1));
+  CGFloat offset = leftInset + itemWidth + singleGutterWidth;
+  
   if ([elementKind isEqualToString:UICollectionElementKindSectionHeader]) {
     UICollectionViewLayoutAttributes * attributes = self.headerAttributes[indexPath.section];
     CGRect fullSectionFrame = [self frameForSection: indexPath.section];
@@ -420,7 +432,7 @@
       CGFloat minimumY = MAX(self.collectionView.contentOffset.y + self.collectionView.contentInset.top, fullSectionFrame.origin.y);
       CGFloat maximumY = CGRectGetMaxY(fullSectionFrame) - headerReferenceSize.height - self.collectionView.contentInset.bottom;
       
-      attributes.frame = CGRectMake(0, MIN(minimumY, maximumY), self.collectionView.bounds.size.width, headerReferenceSize.height);
+      attributes.frame = CGRectMake(offset, MIN(minimumY, maximumY), headerReferenceSize.width - offset, headerReferenceSize.height);
       attributes.zIndex = 1;
     }
     return attributes;
