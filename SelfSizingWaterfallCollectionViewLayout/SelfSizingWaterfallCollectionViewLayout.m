@@ -277,7 +277,7 @@
 
 - (void)prepareSection:(NSUInteger)section
 {
-  NSUInteger numberOfColumns = [self numberOfColumnsInSection:section] + 1; //Add one for our custom section level notes
+  NSUInteger numberOfColumns = [self numberOfColumnsInSection:section];
   CGFloat reverseTetrisPoint = [[[self allSectionHeights] valueForKeyPath:@"@sum.floatValue"] floatValue];
   
   CGFloat topInset = [self sectionInsetsInSection:section].top;
@@ -286,6 +286,15 @@
   }
   
   CGSize headerSize = [self headerReferenceSizeInSection:section];
+  if (headerSize.height > 0) {
+    UICollectionViewLayoutAttributes *headerAttributes = [UICollectionViewLayoutAttributes layoutAttributesForSupplementaryViewOfKind:UICollectionElementKindSectionHeader withIndexPath:[NSIndexPath indexPathForItem:0 inSection:section]];
+    headerAttributes.frame = CGRectMake(0, reverseTetrisPoint, headerSize.width, headerSize.height);
+    for (NSUInteger column = 0; column < numberOfColumns; column++) {
+      // This implicitly adds to the reverseTetrisPoint
+      [self appendHeight:headerSize.height toColumn:column inSection:section];
+    }
+    self.headerAttributes[section] = headerAttributes;
+  }
   
   CGFloat leftInset = [self sectionInsetsInSection:section].left;
   CGFloat rightInset = [self sectionInsetsInSection:section].right;
@@ -297,27 +306,12 @@
   NSInteger itemCount = [self.collectionView numberOfItemsInSection:section];
   CGFloat itemWidth = floorf((cellContentAreaWidth - totalGutterWidth) / numberOfColumns);
   
-  if (headerSize.height > 0) {
-    UICollectionViewLayoutAttributes *headerAttributes = [UICollectionViewLayoutAttributes layoutAttributesForSupplementaryViewOfKind:UICollectionElementKindSectionHeader withIndexPath:[NSIndexPath indexPathForItem:0 inSection:section]];
-    CGFloat offset = leftInset + itemWidth + singleGutterWidth;
-    headerAttributes.frame = CGRectMake(offset, reverseTetrisPoint, headerSize.width - offset, headerSize.height);
-    for (NSUInteger column = 0; column < numberOfColumns; column++) {
-      // This implicitly adds to the reverseTetrisPoint
-      [self appendHeight:headerSize.height toColumn:column inSection:section];
-    }
-    self.headerAttributes[section] = headerAttributes;
-  }
-  
   NSUInteger posIdx = 0;
   for (NSUInteger item = 0; item < itemCount; item++) {
     
     NSIndexPath *indexPath = [NSIndexPath indexPathForItem:item inSection:section];
-    CollectionCellType type = [self.delegate collectionView:self.collectionView cellTypeForIndexPath:indexPath];
-    NSUInteger columnIndex = 0;
-    if (type != SectionCellType) {
-      columnIndex = (posIdx % [self numberOfColumnsInSection:section]) + 1;
-      posIdx++;
-    }
+    NSUInteger columnIndex = (item % numberOfColumns);
+
     //if we have a section cell, put it in the left most column
     CGFloat xOffset = leftInset + ((itemWidth + singleGutterWidth) * columnIndex);
     CGFloat yOffset = reverseTetrisPoint + [self columnHeightsInSection:section][columnIndex].floatValue;
@@ -364,12 +358,10 @@
 - (NSArray *)layoutAttributesForElementsInRect:(CGRect)rect
 {
   NSMutableArray *layoutAttributesForElementsInRect = [NSMutableArray array];
-  NSMutableDictionary<NSNumber *, NSNumber *> * sectionsVisible = [NSMutableDictionary new];
   
   [self.allItemAttributes.allValues enumerateObjectsUsingBlock:^(UICollectionViewLayoutAttributes *layoutAttributes, NSUInteger idx, BOOL *stop) {
     if (CGRectIntersectsRect(rect, layoutAttributes.frame)) {
       [layoutAttributesForElementsInRect addObject:layoutAttributes];
-      [sectionsVisible setObject:[NSNumber numberWithBool:YES] forKey:[NSNumber numberWithInteger:layoutAttributes.indexPath.section]];
     }
   }];
   
@@ -377,21 +369,9 @@
     if (![layoutAttributes isEqual:[NSNull null]]) {
       if (CGRectIntersectsRect(rect, layoutAttributes.frame)) {
         [layoutAttributesForElementsInRect addObject:layoutAttributes];
-        if (sectionsVisible[[NSNumber numberWithInteger:layoutAttributes.indexPath.section]] != nil) {
-          [sectionsVisible removeObjectForKey:[NSNumber numberWithInteger:layoutAttributes.indexPath.section]];
-        }
       }
     }
   }];
-  
-  //For any sections that are visible but we don't initially see the header -- set them up
-  for (NSNumber * key in [sectionsVisible allKeys]) {
-    [layoutAttributesForElementsInRect addObject:
-     [self layoutAttributesForSupplementaryViewOfKind:UICollectionElementKindSectionHeader
-                                          atIndexPath:[NSIndexPath indexPathForRow:0 inSection:[key integerValue]]
-      ]
-     ];
-  }
   
   [self.footerAttributes enumerateObjectsUsingBlock:^(UICollectionViewLayoutAttributes *layoutAttributes, NSUInteger idx, BOOL *stop) {
     if (![layoutAttributes isEqual:[NSNull null]]) {
@@ -411,31 +391,8 @@
 
 - (UICollectionViewLayoutAttributes *)layoutAttributesForSupplementaryViewOfKind:(NSString *)elementKind atIndexPath:(NSIndexPath *)indexPath
 {
-  
-  CGFloat leftInset = [self sectionInsetsInSection:indexPath.section].left;
-  CGFloat rightInset = [self sectionInsetsInSection:indexPath.section].right;
-  CGFloat cellContentAreaWidth = CGRectGetWidth(self.collectionView.frame) - (leftInset + rightInset);
-  CGFloat numberOfGutters = [self numberOfColumnsInSection:indexPath.section];
-  CGFloat singleGutterWidth = [self minimumInteritemSpacingInSection:indexPath.section];
-  CGFloat totalGutterWidth = singleGutterWidth * numberOfGutters;
-  CGFloat minimumLineSpacing = [self minimumLineSpacingInSection:indexPath.section];
-  NSInteger itemCount = [self.collectionView numberOfItemsInSection:indexPath.section];
-  CGFloat itemWidth = floorf((cellContentAreaWidth - totalGutterWidth) / ([self numberOfColumnsInSection:indexPath.section] + 1));
-  CGFloat offset = leftInset + itemWidth + singleGutterWidth;
-  
   if ([elementKind isEqualToString:UICollectionElementKindSectionHeader]) {
-    UICollectionViewLayoutAttributes * attributes = self.headerAttributes[indexPath.section];
-    CGRect fullSectionFrame = [self frameForSection: indexPath.section];
-    if (!CGRectIsNull(fullSectionFrame)) {
-      CGSize headerReferenceSize = [self headerReferenceSizeInSection:indexPath.section];
-      
-      CGFloat minimumY = MAX(self.collectionView.contentOffset.y + self.collectionView.contentInset.top, fullSectionFrame.origin.y);
-      CGFloat maximumY = CGRectGetMaxY(fullSectionFrame) - headerReferenceSize.height - self.collectionView.contentInset.bottom;
-      
-      attributes.frame = CGRectMake(offset, MIN(minimumY, maximumY), headerReferenceSize.width - offset, headerReferenceSize.height);
-      attributes.zIndex = 1;
-    }
-    return attributes;
+    return self.headerAttributes[indexPath.section];
   }
   
   if ([elementKind isEqualToString:UICollectionElementKindSectionFooter]) {
@@ -583,3 +540,4 @@
 
 
 @end
+
